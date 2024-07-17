@@ -1,9 +1,20 @@
+# 基础配置
 basic:
-  api_tracks_list: https://www.ximalaya.com/revision/album/v1/getTracksList/
-  api_tracks_info: https://www.ximalaya.com/mobile-playpage/track/v3/baseInfo/
-  base_url: https://www.ximalaya.com/album/
-  save_dir: C:\Users\QiQi\Music\
+  # 下载文件保存路径
+  save_dir: C:\Users\28125\Music
+  # 账号登录信息
+  account:
+    # 手机号或邮箱
+    accountName: "15297923680"
+    # 密码
+    accountPWD: "YRm7PmOvlT#f5%xO!ZBA"
 transfer:
+  URL:
+    api_tracks_list: https://www.ximalaya.com/revision/album/v1/getTracksList/
+    api_tracks_info: https://www.ximalaya.com/mobile-playpage/track/v3/baseInfo/
+    base_album_url: https://www.ximalaya.com/album/
+    base_site_url: https://www.ximalaya.com/
+    home: https://www.ximalaya.com/
   headers:
     Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
     Accept-Encoding: gzip, deflate, br, zstd
