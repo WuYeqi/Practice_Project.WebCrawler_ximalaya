@@ -38,7 +38,8 @@ class WebCrawler_ximalaya:
         config_file = os.path.join(PROJECT_BASE_DIR, "config.yaml").replace("\\", "/")
 
         # config.yaml
-        yaml_data = yaml.load(open(config_file), Loader=yaml.BaseLoader)
+        with open(config_file, encoding="utf-8") as f:
+            yaml_data = yaml.load(f, Loader=yaml.BaseLoader)
 
         ## 文件下载保存路径
         self.save_dir = yaml_data["basic"]["save_dir"]
@@ -53,9 +54,9 @@ class WebCrawler_ximalaya:
         )
 
         # 相关接口
-        self.base_url = yaml_data["basic"]["base_url"]
-        self.api_tracks_list = yaml_data["basic"]["api_tracks_list"]
-        self.api_tracks_info = yaml_data["basic"]["api_tracks_info"]
+        self.base_url = yaml_data["transfer"]["URL"]["base_album_url"]
+        self.api_tracks_list = yaml_data["transfer"]["URL"]["api_tracks_list"]
+        self.api_tracks_info = yaml_data["transfer"]["URL"]["api_tracks_info"]
 
         # 运行时传入参数 --id=[专辑id]
         parser = argparse.ArgumentParser()
@@ -86,6 +87,8 @@ class WebCrawler_ximalaya:
 
         # 专辑标题 albumTitle
         soup = BeautifulSoup(driver.page_source, features="lxml")
+        driver.close()
+
         album_title = soup.find("h1", attrs={"class": "title z_i"}).contents[0]
         album_title = legalized_file_name(album_title)
         print(
@@ -171,8 +174,6 @@ class WebCrawler_ximalaya:
                     f.write(response.content)
 
             pageNum += 1
-
-        driver.close()
 
 
 WebCrawler_ximalaya().download_album()
