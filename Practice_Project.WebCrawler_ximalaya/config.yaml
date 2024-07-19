@@ -5,9 +5,9 @@ basic:
   # 账号登录信息
   account:
     # 手机号或邮箱
-    accountName: "15297923680"
+    accountName: 15297923680
     # 密码
-    accountPWD: "YRm7PmOvlT#f5%xO!ZBA"
+    accountPWD: YRm7PmOvlT#f5%xO!ZBA
 transfer:
   URL:
     api_tracks_list: https://www.ximalaya.com/revision/album/v1/getTracksList/

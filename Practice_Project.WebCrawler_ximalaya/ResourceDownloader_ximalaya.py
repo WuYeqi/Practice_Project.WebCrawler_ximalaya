@@ -75,11 +75,11 @@ class WebCrawler_ximalaya:
             for cookie in cookies:
                 driver.add_cookie(cookie)
         driver.refresh()
+
         # 为requests 获取cookies
-        cookie_list = [
-            item["name"] + "=" + item["value"] for item in driver.get_cookies()
-        ]
-        cookies = {"Cookie": ";".join(item for item in cookie_list)}
+        cookies_dict = {}
+        for item in driver.get_cookies():
+            cookies_dict[item["name"]] = item["value"]
 
         load_waiting = WebDriverWait(driver, 30)
         XPATH_sound_list = "//div[@class='sound-list  H_g']"
@@ -95,7 +95,7 @@ class WebCrawler_ximalaya:
             time.strftime("%H:%M:%S", time.localtime()),
             "  即将下载专辑：",
             album_title,
-            "\n",
+            " -- ",
             url,
         )
 
@@ -103,13 +103,17 @@ class WebCrawler_ximalaya:
         pageNum = 1  # 当前页码
 
         session = requests.Session()
+        requests.utils.add_dict_to_cookiejar(session.cookies, cookies_dict)
 
         while is_download_continue:
 
             # api_tracks_list: https://www.ximalaya.com/revision/album/v1/getTracksList/
             params = {"albumId": album_id, "pageNum": pageNum, "sort": 0}
             response = session.get(
-                self.api_tracks_list, params=params, headers=self.headers
+                self.api_tracks_list,
+                params=params,
+                headers=self.headers,
+                cookies=cookies_dict,
             )
 
             # 专辑音频总数
@@ -126,18 +130,20 @@ class WebCrawler_ximalaya:
                 track_index = str(track["index"]).zfill(len(str(trackTotalCount)))
                 track_title = legalized_file_name(track["title"])
 
+                # 反爬 - 修改请求头 headers中的 Referer 字段
+                self.headers["Referer"] = "https://www.ximalaya.com/sound/" + str(
+                    track["trackId"]
+                )
+
                 params = {
                     "device": "www2",
                     "trackId": track["trackId"],
                     "trackQualityLevel": 1,
                 }
                 timestamp = int(time.time() * 1000)
-                response = requests.get(
-                    self.api_tracks_info + str(timestamp),
-                    params=params,
-                    headers=self.headers,
-                    cookies=cookies,
-                )
+                url = self.api_tracks_info + str(timestamp)
+                response = session.get(url, params=params, headers=self.headers)
+
                 playUrlList = (
                     json.loads(response.text).get("trackInfo").get("playUrlList")[0]
                 )
@@ -155,11 +161,7 @@ class WebCrawler_ximalaya:
                     print("文件下载保存路径异常，请检查设置")
 
                 file_path = os.path.join(save_dir, file_save_name)
-                response = requests.get(
-                    track_url,
-                    headers=self.headers,
-                    cookies=cookies,
-                )
+                response = session.get(track_url, headers=self.headers)
                 with open(file_path, "wb") as f:
                     print(
                         time.strftime("%H:%M:%S", time.localtime()),
