@@ -6,10 +6,11 @@ import time
 
 
 from bs4 import BeautifulSoup
-import requests.cookies
+from selenium.common.exceptions import NoSuchElementException
+from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.support.ui import WebDriverWait
+import cv2
+import requests.cookies
 import requests
 import yaml
 
@@ -20,12 +21,6 @@ from WebCrawlerCommonConf.WebdriverConf import WebdriverOptionsConf
 from WebCrawlerCommonConf.TransferConf import HeadersConf
 from FileCommonOperations.FileName import *
 from CrackCaptcha.PuzzleSlider import Slider
-
-from selenium.webdriver.common.action_chains import ActionChains
-from requests.cookies import RequestsCookieJar
-from selenium.common.exceptions import TimeoutException, NoSuchElementException
-from matplotlib import pyplot as PLT
-import cv2
 
 
 class WebCrawler_ximalaya:
