@@ -1,10 +1,8 @@
-import os
-import random
-
-
 from selenium import webdriver
-from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
-import yaml
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.ui import WebDriverWait
+
 
 from .TransferConf import HeadersConf
 
@@ -21,5 +19,17 @@ class WebdriverOptionsConf:
 
         self.options.set_capability("pageLoadStrategy", "none")
 
-    def get_options(self):
-        return self.options
+    def add_proxy_server(self):
+        self.options.add_argument("--proxy-server=socks5://127.0.0.1:10808")
+
+    def get_driver(self, chromedriver_path, add_proxy_server=False):
+        if add_proxy_server:
+            self.add_proxy_server()
+
+        service = Service(executable_path=chromedriver_path)
+        self.driver = webdriver.Chrome(options=self.options, service=service)
+        return self.driver
+
+    def waiting_until(self, locator):
+        delay = 60
+        WebDriverWait(self.driver, delay).until(EC.presence_of_element_located(locator))

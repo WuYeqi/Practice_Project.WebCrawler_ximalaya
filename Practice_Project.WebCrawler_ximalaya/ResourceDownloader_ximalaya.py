@@ -12,15 +12,14 @@ from selenium.webdriver.common.by import By
 import cv2
 import requests.cookies
 import requests
-import yaml
 
 
 sys.path.append("..")
+from CrackCaptcha.PuzzleSlider import Slider
+from FileCommonOperations.FileName import *
 from sources_rewritten.getSoundCryptLink import JSReverse
 from WebCrawlerCommonConf.WebdriverConf import WebdriverOptionsConf
-from WebCrawlerCommonConf.TransferConf import HeadersConf
-from FileCommonOperations.FileName import *
-from CrackCaptcha.PuzzleSlider import Slider
+from YamlDataConf import YamlData
 
 
 class WebCrawler_ximalaya:
@@ -29,22 +28,6 @@ class WebCrawler_ximalaya:
 
         # 获取当前脚本的完整路径
         PROJECT_BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-        config_file = os.path.join(PROJECT_BASE_DIR, "config.yaml").replace("\\", "/")
-
-        # config.yaml
-        with open(config_file, encoding="utf-8") as f:
-            yaml_data = yaml.load(f, Loader=yaml.BaseLoader)
-
-        ## 文件下载保存路径
-        self.save_dir = yaml_data["basic"]["save_dir"]
-        self.account = {
-            "accountName": yaml_data["basic"]["account"]["accountName"],
-            "accountPWD": yaml_data["basic"]["account"]["accountPWD"],
-        }
-
-        ## 预存的headers
-        self.headers = yaml_data["transfer"]["headers"]
-        self.headers["User-Agent"] = HeadersConf().get_random_user_agent()
 
         # cookies.txt
         self.cookies_file = os.path.join(PROJECT_BASE_DIR, "cookies.txt").replace(
@@ -56,11 +39,6 @@ class WebCrawler_ximalaya:
         if not self.tmp_dir:
             os.makedirs(self.tmp_dir)
 
-        # 相关接口
-        self.album_url = yaml_data["transfer"]["URL"]["base_album_url"]
-        self.api_tracks_list = yaml_data["transfer"]["URL"]["api_tracks_list"]
-        self.api_tracks_info = yaml_data["transfer"]["URL"]["api_tracks_info"]
-
         # 运行时传入参数 --id=[专辑id]
         parser = argparse.ArgumentParser()
         parser.add_argument("--id", type=int)
@@ -71,10 +49,11 @@ class WebCrawler_ximalaya:
         self.driver = self.WDOC.get_driver(chromedriver_path)
 
     def download_album(self):
+        yaml_data = YamlData()
         driver = self.driver
 
         album_id = str(self.args.id)
-        url = self.album_url + album_id
+        url = yaml_data.album_url + album_id
 
         driver.get(url)
         driver.maximize_window()
@@ -133,9 +112,9 @@ class WebCrawler_ximalaya:
             # api_tracks_list: https://www.ximalaya.com/revision/album/v1/getTracksList/
             params = {"albumId": album_id, "pageNum": pageNum, "sort": 0}
             response = session.get(
-                self.api_tracks_list,
+                yaml_data.api_tracks_list,
                 params=params,
-                headers=self.headers,
+                headers=yaml_data.headers,
                 cookies=cookies_dict,
             )
 
@@ -154,8 +133,8 @@ class WebCrawler_ximalaya:
                 track_title = legalized_file_name(track["title"])
 
                 # 反爬 - 修改请求头 headers中的 Referer 字段
-                self.headers["Host"] = "www.ximalaya.com"
-                self.headers["Referer"] = "https://www.ximalaya.com/sound/" + str(
+                yaml_data.headers["Host"] = "www.ximalaya.com"
+                yaml_data.headers["Referer"] = "https://www.ximalaya.com/sound/" + str(
                     track["trackId"]
                 )
 
@@ -165,8 +144,8 @@ class WebCrawler_ximalaya:
                     "trackQualityLevel": 1,
                 }
                 timestamp = int(time.time() * 1000)
-                url = self.api_tracks_info + str(timestamp)
-                response = session.get(url, params=params, headers=self.headers)
+                url = yaml_data.api_tracks_info + str(timestamp)
+                response = session.get(url, params=params, headers=yaml_data.headers)
 
                 playUrlList = (
                     json.loads(response.text).get("trackInfo").get("playUrlList")[0]
@@ -176,7 +155,7 @@ class WebCrawler_ximalaya:
 
                 # 下载文件
                 file_type = regex_match_file_suffix(track_url)
-                save_dir = os.path.join(self.save_dir, album_title)
+                save_dir = os.path.join(yaml_data.save_dir, album_title)
                 file_save_name = track_index + "_" + track_title + file_type
                 try:
                     if not os.path.exists(save_dir):
@@ -188,22 +167,26 @@ class WebCrawler_ximalaya:
 
                 # 迷惑，get加了headers反而会403Forbidden
                 response = session.get(track_url)
-                with open(file_path, "wb") as f:
-                    print(
-                        time.strftime("%H:%M:%S", time.localtime()),
-                        "  (当前进度：",
-                        track_index,
-                        "/",
-                        trackTotalCount,
-                        ")" "  当前下载文件",
-                        file_save_name,
-                    )
-                    print(" ———— url：", track_url)
-                    f.write(response.content)
+                if response.headers.get("Content-Length") < 500:
+                    print("收到数据大小 < 500字节，疑似为无效资源，请确认!!")
+                else:
+                    with open(file_path, "wb") as f:
+                        print(
+                            time.strftime("%H:%M:%S", time.localtime()),
+                            "  (当前进度：",
+                            track_index,
+                            "/",
+                            trackTotalCount,
+                            ")" "  当前下载文件",
+                            file_save_name,
+                        )
+                        print(" ———— url：", track_url)
+                        f.write(response.content)
 
             pageNum += 1
 
     def auto_login(self):
+        yaml_data = YamlData()
         driver = self.driver
         driver.find_element(By.XPATH, '//div[contains(text(),"账号")]').click()
 
@@ -213,8 +196,8 @@ class WebCrawler_ximalaya:
         input_accountPWD = driver.find_element(By.XPATH, '//input[@id="accountPWD"]')
         login_btn = driver.find_element(By.XPATH, '//button[@class="login-btn"]')
 
-        input_accountName.send_keys(self.account["accountName"])
-        input_accountPWD.send_keys(self.account["accountPWD"])
+        input_accountName.send_keys(yaml_data.account["accountName"])
+        input_accountPWD.send_keys(yaml_data.account["accountPWD"])
         login_btn.click()
 
         # 突破概率出现的拼图滑块验证码
